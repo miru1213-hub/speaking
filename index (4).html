@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>말하기 과제 제출</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --ink: #1f2328; --muted: #6b7280;
+    --line: #e5e7eb; --ga: #4f46e5; --na: #7c3aed; --hint: #7c3aed;
+    --accent: #2563eb; --rec: #dc2626; --ok: #16a34a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    font-size: 17px; line-height: 1.55; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 22px; margin: 4px 0 4px; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  label { display: block; font-size: 14px; color: var(--muted); margin: 10px 0 4px; }
+  input, select { width: 100%; font-size: 17px; padding: 11px 12px; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; }
+  button { font: inherit; border: 0; border-radius: 12px; padding: 13px 16px; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: default; }
+  .primary { background: var(--accent); color: #fff; width: 100%; font-weight: 600; margin-top: 16px; }
+  .ghost { background: #eef2ff; color: var(--accent); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .hidden { display: none !important; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 12px; padding: 12px 14px; font-size: 15px; margin-bottom: 14px; }
+  .err { color: var(--rec); font-size: 15px; margin-top: 10px; }
+
+  .progress { display: flex; gap: 6px; margin: 4px 0 14px; flex-wrap: wrap; }
+  .dot { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line); background: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; padding: 0; }
+  .dot.cur { border-color: var(--accent); color: var(--accent); }
+  .dot.done { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+  .example { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px 14px; font-size: 15px; margin-bottom: 14px; }
+  .example b { color: var(--muted); font-weight: 600; }
+  .turn { display: grid; grid-template-columns: 28px 1fr; gap: 6px; margin: 6px 0; align-items: start; }
+  .who { font-weight: 700; }
+  .who.ga { color: var(--ga); } .who.na { color: var(--na); }
+  .hint { color: var(--hint); }
+  .blank { display: inline-block; min-width: 140px; border-bottom: 2px dotted #9ca3af; margin-right: 6px; transform: translateY(-4px); }
+  .qno { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+  .listen { background: none; padding: 0 0 0 6px; font-size: 15px; color: var(--accent); }
+  .say { font-size: 15px; color: var(--muted); margin: 12px 0 0; }
+
+  .recbox { text-align: center; padding-top: 6px; }
+  .recbtn { width: 92px; height: 92px; border-radius: 50%; background: var(--rec); color: #fff; font-size: 15px; font-weight: 700;
+    box-shadow: 0 4px 14px rgba(220,38,38,.3); }
+  .recbtn.on { animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(220,38,38,.45)} 100%{box-shadow:0 0 0 18px rgba(220,38,38,0)} }
+  .timer { font-variant-numeric: tabular-nums; font-size: 22px; margin: 10px 0 2px; }
+  .limit { font-size: 13px; color: var(--muted); }
+  audio { width: 100%; margin-top: 12px; }
+  .status { text-align: center; font-size: 15px; margin-top: 10px; min-height: 22px; }
+  .status.ok { color: var(--ok); font-weight: 600; }
+  .done-card { text-align: center; padding: 32px 18px; }
+  .done-card .big { font-size: 46px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 1. 시작 화면 -->
+  <section id="start">
+    <h1>말하기 과제 제출</h1>
+    <p class="sub">질문을 보고 대답을 녹음해서 제출하세요.</p>
+    <div id="inappWarn" class="warn hidden">
+      카카오톡 안에서는 녹음이 잘 안 될 수 있어요.<br>
+      아래 버튼을 눌러 <b>크롬</b>이나 <b>사파리</b>에서 열어 주세요.
+      <a id="openExternal" class="primary" target="_top"
+         style="display:block;text-align:center;text-decoration:none;border-radius:12px;padding:13px 16px;margin-top:12px">
+         다른 브라우저로 열기</a>
+      <div style="font-size:13px;margin-top:8px;color:#9a3412">
+        버튼이 안 되면: 오른쪽 위 <b>⋮</b> 또는 <b>공유</b> 버튼 → <b>다른 브라우저로 열기</b></div>
+    </div>
+    <div class="card">
+      <label for="cls">반</label>
+      <input id="cls" placeholder="예: 3급 A반" autocomplete="off">
+      <label for="sid">학번</label>
+      <input id="sid" inputmode="numeric" autocomplete="off">
+      <label for="name">이름</label>
+      <input id="name" autocomplete="name">
+      <label for="task">과제</label>
+      <select id="task"><option>불러오는 중...</option></select>
+      <button id="startBtn" class="primary" disabled>시작하기</button>
+      <div id="startErr" class="err"></div>
+    </div>
+  </section>
+
+  <!-- 2. 문항 화면 -->
+  <section id="quiz" class="hidden">
+    <h1 id="taskTitle"></h1>
+    <div class="progress" id="progress"></div>
+
+    <div id="exampleBox" class="example hidden"></div>
+
+    <div class="card">
+      <div class="qno" id="qno"></div>
+      <div class="turn"><span class="who ga">가</span>
+        <span><span id="ga"></span><span class="hint" id="hint"></span><button class="listen" id="listenBtn" type="button">🔊 듣기</button></span></div>
+      <div class="turn"><span class="who na">나</span>
+        <span><span class="blank"></span><span id="naTail"></span></span></div>
+      <p class="say">‘나’의 대답을 <b>처음부터 끝까지</b> 말하세요.</p>
+    </div>
+
+    <div class="card recbox">
+      <div id="micArea">
+        <button id="recBtn" class="recbtn" type="button">녹음</button>
+        <div class="timer" id="timer">0:00</div>
+        <div class="limit">최대 1분</div>
+      </div>
+      <div id="fileArea" class="hidden">
+        <p style="font-size:15px;margin:0 0 10px">이 브라우저에서는 바로 녹음이 안 돼요.<br>휴대폰 녹음 앱으로 녹음한 파일을 선택하세요.</p>
+        <input type="file" id="fileInput" accept="audio/*" capture>
+      </div>
+      <audio id="player" controls class="hidden"></audio>
+      <div class="row" style="margin-top:12px">
+        <button id="redoBtn" class="ghost hidden" type="button">다시 녹음</button>
+        <button id="sendBtn" class="primary hidden" style="margin-top:0" type="button">제출하기</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="row">
+      <button id="prevBtn" class="ghost" type="button">← 이전</button>
+      <button id="nextBtn" class="ghost" type="button">다음 →</button>
+    </div>
+  </section>
+
+  <!-- 3. 끝 -->
+  <section id="done" class="hidden">
+    <div class="card done-card">
+      <div class="big">🎉</div>
+      <h1>모두 제출했어요!</h1>
+      <p class="sub" id="doneMsg"></p>
+      <button id="reviewBtn" class="ghost" type="button">문항 다시 보기</button>
+    </div>
+  </section>
+</div>
+
+<script>
+/* 외부(예: GitHub Pages)에 이 파일을 올려서 쓸 때만 웹 앱 주소를 넣으세요.
+   Apps Script 웹 앱에서 바로 쓸 때는 비워 두면 됩니다. */
+var WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwdRgyVlOwgru_OqHWxLcZUoRjr0NX7C9CeEOn-1A4BYqeGikcDk4Igz1N50q3v8p8z/exec';
+var MAX_SEC = 60;
+
+var IN_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+var data = null, task = null, items = [], idx = 0, submitted = {};
+var recorder = null, chunks = [], stream = null, blob = null, blobMime = '', fileName = '';
+var tick = null, startedAt = 0, duration = 0;
+
+function $(id) { return document.getElementById(id); }
+function show(id, on) { $(id).classList.toggle('hidden', !on); }
+
+/* ---------- 서버 통신 ---------- */
+function api(fn, arg) {
+  return new Promise(function (resolve, reject) {
+    if (IN_GAS) {
+      var r = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      return arg === undefined ? r[fn]() : r[fn](arg);
+    }
+    if (!WEB_APP_URL) return reject(new Error('WEB_APP_URL이 설정되지 않았습니다.'));
+    var p = fn === 'getQuestions'
+      ? fetch(WEB_APP_URL + '?api=questions')
+      : fetch(WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(arg) });
+    p.then(function (r) { return r.json(); }).then(resolve, reject);
+  });
+}
+
+/* ---------- 시작 화면 ---------- */
+(function init() {
+  var ua = navigator.userAgent;
+  if (/KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua)) {
+    show('inappWarn', true);
+    if (/KAKAOTALK/i.test(ua)) {
+      var setLink = function (url) {
+        $('openExternal').href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+      };
+      if (IN_GAS) google.script.run.withSuccessHandler(setLink).getAppUrl();
+      else setLink(location.href);
+    } else {
+      show('openExternal', false);
+    }
+  }
+  try {
+    var saved = JSON.parse(localStorage.getItem('voiceAnswerStudent') || '{}');
+    ['cls', 'sid', 'name'].forEach(function (k) { if (saved[k]) $(k).value = saved[k]; });
+  } catch (e) {}
+
+  api('getQuestions').then(function (d) {
+    data = d;
+    var sel = $('task');
+    sel.innerHTML = '';
+    if (!d.order.length) { sel.innerHTML = '<option>등록된 과제가 없어요</option>'; return; }
+    d.order.forEach(function (t) {
+      var o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o);
+    });
+    sel.selectedIndex = d.order.length - 1;   // 가장 최근(아래쪽) 과제를 기본으로
+    $('startBtn').disabled = false;
+  }).catch(function (e) {
+    $('startErr').textContent = '문항을 불러오지 못했어요. 새로고침해 보세요. (' + (e.message || e) + ')';
+  });
+})();
+
+$('startBtn').onclick = function () {
+  var name = $('name').value.trim(), sid = $('sid').value.trim(), cls = $('cls').value.trim();
+  if (!name || !sid) { $('startErr').textContent = '학번과 이름을 써 주세요.'; return; }
+  try { localStorage.setItem('voiceAnswerStudent', JSON.stringify({ cls: cls, sid: sid, name: name })); } catch (e) {}
+  task = $('task').value;
+  items = data.tasks[task].items;
+  if (!items.length) { $('startErr').textContent = '이 과제에는 문항이 없어요.'; return; }
+  renderExample(data.tasks[task].examples);
+  $('taskTitle').textContent = task;
+  show('start', false); show('quiz', true);
+  go(0);
+};
+
+function renderExample(ex) {
+  var box = $('exampleBox');
+  if (!ex.length) { show('exampleBox', false); return; }
+  var e = ex[0];
+  box.innerHTML = '';
+  var t = document.createElement('div'); t.innerHTML = '<b>보기</b>'; box.appendChild(t);
+  [['가', e.ga + (e.hint ? ' (' + e.hint + ')' : '')], ['나', e.exampleAnswer]].forEach(function (p) {
+    var d = document.createElement('div'); d.textContent = p[0] + ': ' + p[1]; box.appendChild(d);
+  });
+  show('exampleBox', true);
+}
+
+/* ---------- 문항 이동 ---------- */
+function go(i) {
+  stopRecording(true);
+  idx = Math.max(0, Math.min(items.length - 1, i));
+  var q = items[idx];
+  $('qno').textContent = q.no + '번  (' + (idx + 1) + ' / ' + items.length + ')';
+  $('ga').textContent = q.ga;
+  $('hint').textContent = q.hint ? ' (' + q.hint + ')' : '';
+  $('naTail').textContent = q.naTail;
+  $('prevBtn').disabled = idx === 0;
+  $('nextBtn').disabled = idx === items.length - 1;
+  resetRecording();
+  if (submitted[idx]) setStatus('제출했어요 ✓  다시 녹음해서 또 낼 수도 있어요.', true);
+  renderProgress();
+  window.scrollTo(0, 0);
+}
+
+function renderProgress() {
+  var p = $('progress'); p.innerHTML = '';
+  items.forEach(function (q, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'dot' + (i === idx ? ' cur' : '') + (submitted[i] ? ' done' : '');
+    b.textContent = q.no;
+    b.onclick = function () { go(i); };
+    p.appendChild(b);
+  });
+}
+$('prevBtn').onclick = function () { go(idx - 1); };
+$('nextBtn').onclick = function () { go(idx + 1); };
+$('reviewBtn').onclick = function () { show('done', false); show('quiz', true); go(0); };
+
+/* ---------- 가 듣기 (브라우저 음성) ---------- */
+$('listenBtn').onclick = function () {
+  try {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(items[idx].ga);
+    u.lang = 'ko-KR'; u.rate = 0.9;
+    var ko = speechSynthesis.getVoices().filter(function (v) { return /^ko/i.test(v.lang); })[0];
+    if (ko) u.voice = ko;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+};
+if (!('speechSynthesis' in window)) show('listenBtn', false);
+
+/* ---------- 녹음 ---------- */
+function pickMime() {
+  if (typeof MediaRecorder === 'undefined') return '';
+  var list = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus'];
+  for (var i = 0; i < list.length; i++) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(list[i])) return list[i];
+  return '';
+}
+var canMic = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && typeof MediaRecorder !== 'undefined');
+if (!canMic) useFileFallback();
+
+function useFileFallback() { show('micArea', false); show('fileArea', true); }
+
+$('recBtn').onclick = function () {
+  if (recorder && recorder.state === 'recording') { stopRecording(); return; }
+  startRecording();
+};
+
+function startRecording() {
+  resetRecording();
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+    stream = s; chunks = [];
+    var mime = pickMime();
+    recorder = mime ? new MediaRecorder(s, { mimeType: mime }) : new MediaRecorder(s);
+    recorder.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    recorder.onstop = onRecorded;
+    recorder.start();
+    startedAt = Date.now();
+    $('recBtn').textContent = '멈추기'; $('recBtn').classList.add('on');
+    setStatus('녹음 중이에요. 다 말하면 ‘멈추기’를 누르세요.');
+    tick = setInterval(function () {
+      var sec = (Date.now() - startedAt) / 1000;
+      $('timer').textContent = fmt(sec);
+      if (sec >= MAX_SEC) stopRecording();
+    }, 200);
+  }).catch(function () {
+    setStatus('마이크를 쓸 수 없어요. 마이크 권한을 허용하거나, 아래에서 녹음 파일을 선택하세요.');
+    useFileFallback();
+  });
+}
+
+function stopRecording(discard) {
+  clearInterval(tick); tick = null;
+  if (recorder && recorder.state === 'recording') {
+    if (discard) recorder.onstop = null;
+    duration = (Date.now() - startedAt) / 1000;
+    recorder.stop();
+  }
+  if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+  $('recBtn').textContent = '녹음'; $('recBtn').classList.remove('on');
+}
+
+function onRecorded() {
+  blobMime = (recorder && recorder.mimeType) || 'audio/webm';
+  blob = new Blob(chunks, { type: blobMime });
+  fileName = '';
+  showPreview();
+}
+
+$('fileInput').onchange = function () {
+  var f = this.files && this.files[0];
+  if (!f) return;
+  if (f.size > 20 * 1024 * 1024) { setStatus('파일이 너무 커요. 1분 이내로 녹음해 주세요.'); return; }
+  blob = f; blobMime = f.type || 'audio/mp4'; fileName = f.name; duration = 0;
+  showPreview();
+};
+
+function showPreview() {
+  var player = $('player');
+  if (player.src) URL.revokeObjectURL(player.src);
+  player.src = URL.createObjectURL(blob);
+  player.onloadedmetadata = function () { if (!duration && isFinite(player.duration)) duration = player.duration; };
+  show('player', true); show('redoBtn', true); show('sendBtn', true);
+  $('sendBtn').disabled = false;
+  setStatus('들어 보고 괜찮으면 ‘제출하기’를 누르세요.');
+}
+
+function resetRecording() {
+  blob = null; chunks = []; duration = 0; fileName = '';
+  var player = $('player');
+  if (player.src) { URL.revokeObjectURL(player.src); player.removeAttribute('src'); }
+  show('player', false); show('redoBtn', false); show('sendBtn', false);
+  $('timer').textContent = '0:00'; $('fileInput').value = '';
+  setStatus('');
+}
+$('redoBtn').onclick = function () {
+  resetRecording();
+  if (!$('micArea').classList.contains('hidden')) startRecording();
+};
+
+/* ---------- 제출 ---------- */
+$('sendBtn').onclick = function () {
+  if (!blob) return;
+  var btn = this; btn.disabled = true; $('redoBtn').disabled = true;
+  setStatus('보내는 중이에요... 잠깐만 기다리세요.');
+  var reader = new FileReader();
+  reader.onload = function () {
+    var base64 = String(reader.result).split(',')[1];
+    api('saveAnswer', {
+      name: $('name').value.trim(), studentId: $('sid').value.trim(), cls: $('cls').value.trim(),
+      task: task, qNo: items[idx].no, mime: blobMime, fileName: fileName,
+      duration: duration, base64: base64
+    }).then(function (res) {
+      $('redoBtn').disabled = false;
+      if (!res || !res.ok) throw new Error(res && res.error || '실패');
+      submitted[idx] = true;
+      renderProgress();
+      show('sendBtn', false);
+      setStatus('제출했어요 ✓', true);
+      var next = nextUnsubmitted();
+      if (next === -1) {
+        setTimeout(function () {
+          $('doneMsg').textContent = task + ' · ' + items.length + '문항';
+          show('quiz', false); show('done', true);
+        }, 700);
+      } else {
+        setTimeout(function () { go(next); }, 900);
+      }
+    }).catch(function (e) {
+      btn.disabled = false; $('redoBtn').disabled = false;
+      setStatus('제출하지 못했어요. 다시 눌러 보세요. (' + (e.message || e) + ')');
+    });
+  };
+  reader.readAsDataURL(blob);
+};
+
+function nextUnsubmitted() {
+  for (var k = 1; k <= items.length; k++) {
+    var j = (idx + k) % items.length;
+    if (!submitted[j]) return j;
+  }
+  return -1;
+}
+
+function setStatus(msg, ok) { var s = $('status'); s.textContent = msg; s.classList.toggle('ok', !!ok); }
+function fmt(sec) { sec = Math.floor(sec); return Math.floor(sec / 60) + ':' + ('0' + sec % 60).slice(-2); }
+</script>
+</body>
+</html>
